@@ -1,0 +1,22 @@
+{
+  "name": "dsh-desktop",
+  "productName": "DSH Desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DeepSeek Harness 桌面端：复用同一个 DSH_HOME 与 web profile，双击即可运行",
+  "main": "electron/main.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "electron .",
+    "icon": "node tools/make-icon.mjs",
+    "dist": "node tools/build-app.mjs",
+    "shortcut": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/create-shortcut.ps1"
+  },
+  "dependencies": {
+    "pnpm": "^10.0.0"
+  },
+  "devDependencies": {
+    "electron": "^44.3.0",
+    "resedit": "^2.0.3"
+  }
+}

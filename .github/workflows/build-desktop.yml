@@ -1,0 +1,64 @@
+# 在 Windows 上构建绿色版桌面端，并把产物作为 Release 附件发布。
+#
+# 用法：
+#   - 打 tag 推送（v0.1.0）→ 自动构建并创建 Release，附件是 zip
+#   - 或在 Actions 页面手动触发 → 只上传构建产物（Artifact）
+#
+# 说明：产物约 390 MB（其中 360 MB 是 Electron 运行时 + 20 MB 是随包分发的 pnpm），
+# 远超 GitHub 单文件 100 MB 的限制，所以只能走 Release 附件，不能进仓库。
+name: build-desktop
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows-x64:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: 安装依赖（含 Electron 运行时）
+        run: npm ci
+
+      - name: 打包绿色版
+        run: npm run dist
+
+      - name: 压缩产物
+        shell: pwsh
+        run: |
+          $name = "DSH-Desktop-win32-x64"
+          Compress-Archive -Path "dist/DSH Desktop" -DestinationPath "$name.zip" -CompressionLevel Optimal
+          Get-Item "$name.zip" | Select-Object Name, Length
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: DSH-Desktop-win32-x64
+          path: DSH-Desktop-win32-x64.zip
+          retention-days: 14
+
+      - name: 发布 Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: DSH-Desktop-win32-x64.zip
+          generate_release_notes: true
+          body: |
+            下载 `DSH-Desktop-win32-x64.zip`，解压后双击 `DSH Desktop.exe` 即可。
+
+            前提：本机需要先装好 Node.js 与 DeepSeek Harness：
+
+            ```powershell
+            npm i -g @deepseek-ai/dsh
+            ```

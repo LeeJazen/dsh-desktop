@@ -1,0 +1,15 @@
+# 依赖与产物
+node_modules/
+dist/
+
+# 打包 / 安装过程中的缓存
+.npm-cache/
+.electron-cache/
+.localappdata/
+
+# 自动化验证与临时 DSH home（开发调试产物，不进仓库）
+.verify/
+.testhome/
+.freshhome/
+.demo-ud/
+.appdata*/

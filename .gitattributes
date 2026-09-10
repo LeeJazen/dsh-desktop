@@ -1,0 +1,15 @@
+# 换行符统一：源码以 LF 入库，Windows 批处理脚本保持 CRLF。
+# 不这么写的话，Windows 上 git 默认的 autocrlf 会让 diff 全是"整文件改动"。
+* text=auto eol=lf
+
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# 二进制文件不做任何换行符转换
+*.png binary
+*.ico binary
+*.jpg binary
+*.exe binary
+*.dll binary
+*.zip binary
