@@ -1,8 +1,9 @@
 # 在 Windows 上构建绿色版桌面端，并把产物作为 Release 附件发布。
 #
 # 用法：
-#   - 打 tag 推送（v0.1.0）→ 自动构建并创建 Release，附件是 zip
-#   - 或在 Actions 页面手动触发 → 只上传构建产物（Artifact）
+#   - 推到 main          → 构建一次，产物上传为 Artifact（用来验证没打包坏）
+#   - 打 tag 推送（v0.1.0）→ 构建并创建 Release，附件是 zip
+#   - 或在 Actions 页面手动触发 → 只上传 Artifact
 #
 # 说明：产物约 390 MB（其中 360 MB 是 Electron 运行时 + 20 MB 是随包分发的 pnpm），
 # 远超 GitHub 单文件 100 MB 的限制，所以只能走 Release 附件，不能进仓库。
@@ -10,6 +11,8 @@ name: build-desktop
 
 on:
   push:
+    branches:
+      - main
     tags:
       - "v*"
   workflow_dispatch:
@@ -46,7 +49,7 @@ jobs:
         with:
           name: DSH-Desktop-win32-x64
           path: DSH-Desktop-win32-x64.zip
-          retention-days: 14
+          retention-days: 7
 
       - name: 发布 Release
         if: startsWith(github.ref, 'refs/tags/v')
