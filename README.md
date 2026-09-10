@@ -155,13 +155,48 @@ dsh web          # 能跑起来就说明环境 OK（可选）
 
 ## 开发
 
+### 先把代码弄下来
+
+下面这些是给**想自己构建或改代码**的人看的。只是想用的话不用往下看——
+去本仓库的 Releases 页面下载 `DSH-Desktop-win32-x64.zip`，解压双击即可。
+
 ```powershell
-npm install          # 安装 electron / resedit。Electron 下载慢时先设镜像：
-                     #   $env:ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"
-npm run icon         # 重新生成 build/icon.ico（借用 DSH 自带的 sharp 栅格化官方鲸鱼标志）
-npm start            # 开发模式直接跑桌面端
-npm run dist         # 打包成 dist\DSH Desktop
-npm run shortcut     # 在桌面创建快捷方式
+git clone https://github.com/LeeJazen/dsh-desktop.git
+cd dsh-desktop
+```
+
+### 每条命令到底干什么
+
+> 这些命令里**只有 `npm install` 会联网**，而且它下载的是 Electron 这类**依赖包**，
+> 不是本项目。本项目是上面 `git clone` 那一步拿到的。
+
+| 命令 | 联网下载 | 做什么 | 要预先装 DSH |
+|---|---|---|---|
+| `npm install` | ✅ Electron（约 150 MB）、resedit、pnpm | 装进 `node_modules/`（约 420 MB） | 否 |
+| `npm run icon` | ❌ | 用 DSH 自带的 sharp 重新生成 `build/icon.ico` | **是** |
+| `npm start` | ❌ | 开发模式直接跑桌面端 | **是** |
+| `npm run dist` | ❌ | 打包出 `dist\DSH Desktop` | 否 |
+| `npm run shortcut` | ❌ | 在桌面创建快捷方式 | 否 |
+
+**只想拿到 exe、不改代码**——两条就够：
+
+```powershell
+npm install
+npm run dist
+```
+
+**要改代码、想边改边看效果**：
+
+```powershell
+npm install
+npm start
+```
+
+Electron 下载慢的话，先设镜像再装：
+
+```powershell
+$env:ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"
+npm install
 ```
 
 自带自动化验证工具（启动桌面端 → 等页面稳定 → 截图 + dump 诊断）：
