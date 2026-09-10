@@ -125,7 +125,44 @@ DSH Desktop 只复用本机已有的 DSH，不会自己去装。执行 `npm i -g
 
 ## 从源码构建
 
-只是想用的话不用看这一节——去 Releases 下载 zip 更省事。下面是给**想自己构建、或者要改代码**的人看的，按顺序做即可。
+只是想用的话不用看这一节——去 Releases 下载 zip 更省事。下面是给**想自己构建、或者要改代码**的人看的。
+
+### 完整流程（可直接复制）
+
+打开 PowerShell，把下面整段粘进去就行。**只想拿到 exe、不改代码**的话到这里就结束了：
+
+```powershell
+# ① 确认环境（构建需要 Node ≥ 22.12）
+node -v
+git --version
+
+# ② 拿代码
+git clone https://github.com/LeeJazen/dsh-desktop.git
+cd dsh-desktop
+
+# ③ 装依赖（会下载 Electron 运行时，约 150 MB；国内建议先设镜像）
+$env:ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"
+npm install
+
+# ④ 打包
+npm run dist
+
+# ⑤ 确认产物；想省事的话再建个桌面快捷方式
+dir "dist\DSH Desktop\DSH Desktop.exe"
+npm run shortcut
+```
+
+跑完之后 `dist\DSH Desktop\` 里就是可以直接双击运行的绿色版。
+
+> 第 ③ 步的镜像那行删掉也能跑，只是国内下载会明显变慢甚至超时。
+
+**要改代码、想边改边看效果**的话，把 ④ 换成开发模式：
+
+```powershell
+npm start
+```
+
+下面逐条解释这些命令分别在做什么、需要什么前提，以及出问题怎么查。
 
 ### 1. 确认环境
 
@@ -157,16 +194,33 @@ npm install
 1. 从 npm 下载 `electron`、`resedit`、`pnpm` 这些**依赖包**；
 2. 通过 `postinstall` 钩子把 **Electron 运行时（约 150 MB）** 下下来并解压到 `node_modules/electron/dist`。
 
-装完之后 `node_modules/` 约 420 MB，耗时主要取决于下载速度。
+装完之后 `node_modules/` 约 420 MB，耗时主要取决于下载速度（下载慢的话几分钟到十几分钟都算正常）。
+
+**你会看到**（节选）：
+
+```
+> dsh-desktop@0.1.1 postinstall
+> node tools/ensure-electron.mjs
+
+Electron 运行时缺失，开始下载（约 150 MB，只需一次）…
+Electron 运行时已就绪（44.3.0）
+added 173 packages in 9s
+```
 
 > **注意**：这一步**不会下载本项目的代码**——代码是上一步 `git clone` 拿到的。
-> `npm install` 只装依赖。
+> `npm install` 只负责装依赖。
 
-国内网络下载 Electron 慢或超时的话，先设镜像再装：
+国内网络下载 Electron 慢或超时的话，先设镜像再装（设了之后要重新开一个终端，或者在同一段里连着敲）：
 
 ```powershell
 $env:ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"
 npm install
+```
+
+如果下载中断了、或者 `node_modules/electron/dist` 是空的，单独补一次就行：
+
+```powershell
+node tools/ensure-electron.mjs
 ```
 
 ### 4. 打包
@@ -175,7 +229,35 @@ npm install
 npm run dist
 ```
 
-产出在 `dist\DSH Desktop\`，双击里面的 `DSH Desktop.exe` 就能运行。
+打包脚本（`tools/build-app.mjs`）会依次做这几件事，**每一步都会打印出来**，所以万一失败一眼就能看出卡在哪。输出节选：
+
+```
+── 环境自检 ─────────────────────────────
+  node        v24.16.0  win32/x64
+  仓库根      D:\dsh-desktop
+  有   package.json
+  有   build/icon.ico
+  有   electron/main.js
+  有   plugin-market/package.json
+  有   node_modules / node_modules/electron / node_modules/electron/dist
+  有   node_modules/pnpm / node_modules/resedit
+─────────────────────────────────────────
+• 检查 Electron 运行时
+• 清理 dist\DSH Desktop
+• 复制 Electron 运行时
+• 重命名 electron.exe
+• 摆放 resources/app
+• 随包分发 pnpm（插件市场安装插件用）
+• 写入 exe 图标与版本信息
+• 写入使用说明与快捷方式脚本
+• 统计产物体积
+
+打包完成：D:\dsh-desktop\dist\DSH Desktop
+可执行文件：D:\dsh-desktop\dist\DSH Desktop\DSH Desktop.exe
+产物体积：387 MB
+```
+
+产出在 `dist\DSH Desktop\`，双击里面的 `DSH Desktop.exe` 就能运行（第一次启动会显示「正在启动 DSH」，几秒后进入界面）。
 
 想压成可以直接分发的 zip（和 Release 附件同款）：
 
