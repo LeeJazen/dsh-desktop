@@ -385,4 +385,3 @@ node tools/verify/capture.mjs --out shot.png --delay 15000   # 自定输出与�
 仅用于标识这是一个 DSH 的桌面外壳，**不代表 DeepSeek 官方发布**。
 打包产物内含 Electron 运行时，其许可证全文见产物目录下的 `LICENSE` 与 `LICENSES.chromium.html`。
 
-发布流程（打 tag、CI、Release 附件）见 [docs/RELEASING.md](docs/RELEASING.md)。
