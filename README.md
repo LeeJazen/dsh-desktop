@@ -21,7 +21,7 @@ DSH Desktop 是一个桌面外壳，启动的是**本机已安装的 DSH**。所
 | 要求 | 说明 |
 |---|---|
 | 操作系统 | Windows 10 / 11（x64） |
-| [Node.js](https://nodejs.org/) | 20 或更高版本 |
+| [Node.js](https://nodejs.org/) | 20 或更高版本（要**从源码构建**的话需要 22.12+，原因见[那一节](#从源码构建)） |
 | DeepSeek Harness | 执行 `npm i -g @deepseek-ai/dsh` |
 | DeepSeek API Key | 首次启动后在界面里配置 |
 
@@ -125,23 +125,84 @@ DSH Desktop 只复用本机已有的 DSH，不会自己去装。执行 `npm i -g
 
 ## 从源码构建
 
-### 获取代码
+只是想用的话不用看这一节——去 Releases 下载 zip 更省事。下面是给**想自己构建、或者要改代码**的人看的，按顺序做即可。
+
+### 1. 确认环境
+
+| 项目 | 要求 | 说明 |
+|---|---|---|
+| Windows | 10 / 11（x64） | 目前只构建这一个平台 |
+| **Node.js** | **≥ 22.12** | Electron 44 的硬性要求（它的 `package.json` 里写着 `engines.node >= 22.12.0`）。用 `node -v` 确认。注意这比"只运行下载版"的门槛高——那种情况 Node 20 就够 |
+| Git | 任意近期版本 | 用来拿代码；也可以直接下载 ZIP，见下一步 |
+| DeepSeek Harness | `npm i -g @deepseek-ai/dsh` | 只有 `npm start`（开发模式）需要；单纯 `npm run dist` 打包不需要 |
+| 磁盘空间 | **预留约 1 GB** | 依赖约 420 MB + 产物约 390 MB + Electron 下载缓存约 150 MB |
+
+### 2. 获取代码
 
 ```powershell
 git clone https://github.com/LeeJazen/dsh-desktop.git
 cd dsh-desktop
 ```
 
-### 各条命令做什么
+不想用 Git 的话，在仓库页面点 **Code → Download ZIP**，解压后进入目录，效果一样。
 
-> 这些命令里**只有 `npm install` 会联网**，而且它下载的是 Electron 这类**依赖包**，不是本项目本身。
+### 3. 安装依赖
 
-| 命令 | 联网下载 | 做什么 | 要预先装 DSH |
+```powershell
+npm install
+```
+
+这一步做两件事：
+
+1. 从 npm 下载 `electron`、`resedit`、`pnpm` 这些**依赖包**；
+2. 通过 `postinstall` 钩子把 **Electron 运行时（约 150 MB）** 下下来并解压到 `node_modules/electron/dist`。
+
+装完之后 `node_modules/` 约 420 MB，耗时主要取决于下载速度。
+
+> **注意**：这一步**不会下载本项目的代码**——代码是上一步 `git clone` 拿到的。
+> `npm install` 只装依赖。
+
+国内网络下载 Electron 慢或超时的话，先设镜像再装：
+
+```powershell
+$env:ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"
+npm install
+```
+
+### 4. 打包
+
+```powershell
+npm run dist
+```
+
+产出在 `dist\DSH Desktop\`，双击里面的 `DSH Desktop.exe` 就能运行。
+
+想压成可以直接分发的 zip（和 Release 附件同款）：
+
+```powershell
+Compress-Archive -Path "dist\DSH Desktop" -DestinationPath "DSH-Desktop-win32-x64.zip"
+```
+
+### 5. 想改代码的话，用开发模式
+
+```powershell
+npm start
+```
+
+以开发模式直接启动桌面端，改完 `electron/` 下的代码重启即可生效。
+桌面端自身状态和日志在 `%APPDATA%\DSH Desktop\`（日志：`logs\dsh-web.log`）。
+
+`plugin-market/lib/client.js`（插件市场的浏览器半边）比较特殊：它是手写的
+`window.__ModuleLoader__.load` bundle，不需要构建，但改完要**重启 DSH 服务 + 刷新页面**才会重新加载。
+
+### 各条命令对照表
+
+| 命令 | 联网下载 | 做什么 | 需要先装 DSH |
 |---|---|---|---|
 | `npm install` | ✅ Electron（约 150 MB）、resedit、pnpm | 装进 `node_modules/`（约 420 MB） | 否 |
-| `npm run icon` | ❌ | 用 DSH 自带的 sharp 重新生成 `build/icon.ico` | **是** |
-| `npm start` | ❌ | 开发模式直接跑桌面端 | **是** |
 | `npm run dist` | ❌ | 打包出 `dist\DSH Desktop` | 否 |
+| `npm start` | ❌ | 开发模式直接跑桌面端 | **是** |
+| `npm run icon` | ❌ | 用 DSH 自带的 sharp 重新生成 `build/icon.ico` | **是** |
 | `npm run shortcut` | ❌ | 在桌面创建快捷方式 | 否 |
 
 **只想拿到 exe、不改代码**，两条就够：
@@ -151,38 +212,38 @@ npm install
 npm run dist
 ```
 
-**要改代码、想边改边看效果**：
+> CI 用的是 `npm ci`（严格按 `package-lock.json` 装、会先删掉 `node_modules`），
+> 日常开发用 `npm install` 就行。如果你改了依赖，记得把更新后的 `package-lock.json` 一起提交，
+> 否则 CI 会失败。
 
-```powershell
-npm install
-npm start
-```
+### 常见构建问题
 
-Electron 下载慢的话，先设镜像再装：
+| 现象 | 原因与处理 |
+|---|---|
+| `npm install` 卡在下载 Electron / 超时 | 设 `ELECTRON_MIRROR` 后重试（见第 3 步）。实在不行可以在有网的机器上装好，再把整个目录拷过来 |
+| 报错 `✗ 打包失败，阶段：「检查 Electron 运行时」` | Electron 运行时没下下来。手动补一次：`node tools/ensure-electron.mjs`，然后重新 `npm run dist` |
+| 打包报错里带「阶段：xxx」 | 打包脚本会把失败的阶段和环境自检一起打出来，照那几行看就能定位 |
+| `npm start` 打开的是「DSH 没能启动」状态页 | 桌面端没找到本机的 DSH。先 `npm i -g @deepseek-ai/dsh`；装在非常规位置就用 `DSH_CLI`（指向 `lib/bin.js`）和 `DSH_NODE_BIN`（指向 `node.exe`）指路 |
+| `npm run icon` 报找不到 sharp | 这个命令借用 DSH 自带的 sharp，要先装 DSH。`build/icon.ico` 仓库里已经有了，不改图标就不用跑它 |
+| 启动时报 `EPERM` / 命名管道相关错误 | Electron 要建进程间管道，别在严格沙箱化的终端里跑（部分安全软件的沙箱、受限容器都会拦） |
+| 杀毒软件报毒 / 打包很慢 | 产物约 390 MB、解压后有上千个文件，实时扫描会明显拖慢进度 |
 
-```powershell
-$env:ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"
-npm install
-```
+### 验证构建产物
 
-### 自动化验证
-
-仓库自带一个截图 / 诊断工具，会启动桌面端、等页面稳定后截图并输出诊断信息：
+仓库自带一个截图 / 诊断工具，会启动桌面端、等页面稳定后截图，并把桌面端的最近日志打出来：
 
 ```powershell
 node tools/verify/capture.mjs --market      # 打开插件市场并截图
 node tools/verify/capture.mjs               # 主界面截图
-node tools/verify/capture.mjs --dev         # 验证开发模式
-node tools/verify/capture.mjs --out shot.png --delay 15000
+node tools/verify/capture.mjs --dev         # 验证开发模式（用 node_modules 里的 electron）
+node tools/verify/capture.mjs --out shot.png --delay 15000   # 自定输出与等待时间
 ```
-
-> Electron 需要建立进程间命名管道，必须在普通用户会话里运行；
-> 在被严格沙箱化的终端里会以 `EPERM` 直接失败。
 
 ### 调试用环境变量
 
 | 变量 | 作用 |
 |---|---|
+| `ELECTRON_MIRROR` | 换 Electron 运行时的下载源（国内建议 npmmirror） |
 | `DSH_DESKTOP_NO_PROVISION=1` | 启动时不把插件市场装进 profile |
 | `DSH_DESKTOP_USER_DATA=<dir>` | 改桌面端自身状态目录（便携模式 / 测试） |
 | `DSH_DESKTOP_CAPTURE=<png>` | 验证钩子：等页面稳定后截图并退出 |
