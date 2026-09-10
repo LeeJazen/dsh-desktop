@@ -18,11 +18,10 @@
 
 ### 1. 改版本号
 
-版本号在两处，保持一致即可（`package.json` 的 `version` 会被写进 exe 的文件属性，
-但 `tools/build-app.mjs` 里 `setFileVersion` 目前是写死的 `0.1.0`，改版本时一并更新）：
+只需要改一处：`package.json` 的 `version`。它会同时决定
 
-- `package.json` → `version`
-- `tools/build-app.mjs` → `patchExecutable()` 里的 `setFileVersion` / `setProductVersion`
+- 打包产物 `resources/app/package.json` 里的版本（应用「关于」对话框读的就是它），
+- 写进 exe 文件属性的文件/产品版本（`tools/build-app.mjs` 会解析这个值）。
 
 ### 2. 本地验证（可选但推荐）
 

@@ -57,8 +57,9 @@ function reportEnvironment() {
 /**
  * 用 resedit 把图标与版本信息写进 exe；失败不阻断打包。
  * @param exePath - 目标 exe。
+ * @param appVersion - package.json 里的版本号，写进 exe 的文件属性。
  */
-async function patchExecutable(exePath) {
+async function patchExecutable(exePath, appVersion) {
   const iconPath = join(ROOT, "build", "icon.ico");
   if (!existsSync(iconPath)) {
     console.warn("  警告：build/icon.ico 不存在，跳过图标写入（可先运行 npm run icon）");
@@ -84,9 +85,15 @@ async function patchExecutable(exePath) {
     iconFile.icons.map((icon) => icon.data),
   );
 
+  // 版本号只在 package.json 里维护一份，这里解析成 Windows 要求的四段式。
+  const versionParts = String(appVersion ?? "0.0.0")
+    .split(".")
+    .map((part) => Number.parseInt(part, 10))
+    .filter((part) => Number.isFinite(part));
+  const [major = 0, minor = 0, patch = 0] = versionParts;
   const versionInfo = Resource.VersionInfo.createEmpty();
-  versionInfo.setFileVersion(0, 1, 0, 0);
-  versionInfo.setProductVersion(0, 1, 0, 0);
+  versionInfo.setFileVersion(major, minor, patch, 0);
+  versionInfo.setProductVersion(major, minor, patch, 0);
   versionInfo.setStringValues(
     { lang: 1033, codepage: 1200 },
     {
@@ -200,7 +207,7 @@ async function main() {
 
   step("写入 exe 图标与版本信息");
   try {
-    await patchExecutable(exe);
+    await patchExecutable(exe, manifest.version);
   } catch (error) {
     console.warn(`  警告：写入 exe 资源失败（不影响运行）：${error.message}`);
     console.warn(String(error.stack ?? "").split("\n").slice(0, 4).join("\n"));
