@@ -34,40 +34,40 @@ jobs:
       - name: 安装依赖（含 Electron 运行时）
         run: npm ci
 
-      # 把环境事实写进 Job Summary：它会显示在运行页顶部，不用展开步骤就能看到。
+      # 把环境事实写进 Job Summary；同时发一条 notice annotation ——
+      # annotation 可以通过 GitHub API 读取，方便在没有仓库权限的环境里排查。
       - name: 环境自检
         shell: pwsh
         run: |
           $lines = @(
-            "### 构建环境",
-            "",
-            '```text',
             "node          $(node -v)",
             "npm           $(npm -v)",
-            "工作目录      $((Get-Location).Path)",
+            "cwd           $((Get-Location).Path)",
             "electron dist $((Test-Path node_modules/electron/dist))",
             "electron.exe  $((Test-Path node_modules/electron/dist/electron.exe))",
             "pnpm          $((Test-Path node_modules/pnpm))",
-            "resedit       $((Test-Path node_modules/resedit))",
-            '```',
-            ""
+            "resedit       $((Test-Path node_modules/resedit))"
           )
-          $lines | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          (@("### 构建环境", "", '```text') + $lines + @('```', "")) |
+            Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
           $lines | Write-Host
+          $escaped = ($lines | ForEach-Object { $_.Replace("%", "%25").Replace("`r", "%0D").Replace("`n", "%0A") }) -join "%0A"
+          Write-Host "::notice title=构建环境::$escaped"
 
-      # 打包输出同时写进 Job Summary：失败时运行页顶部直接能看到原因，
-      # 不必去 Actions 日志里翻（日志需要仓库管理员权限才能通过 API 读取）。
+      # 失败时把输出同时写进 Job Summary 和 error annotation：
+      # Summary 给人看，annotation 给 API 读（Actions 原始日志需要仓库管理员权限）。
       - name: 打包绿色版
         shell: pwsh
         run: |
           npm run dist 2>&1 | Tee-Object -FilePath build.log
           if ($LASTEXITCODE -ne 0) {
-            $summary = @("### 打包失败：build-app.mjs 输出", "", '```text')
-            $summary += Get-Content build.log -TotalCount 25
-            $summary += @("", "……（中间省略）……", "")
-            $summary += Get-Content build.log -Tail 60
-            $summary += @('```', "")
-            $summary | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            $head = Get-Content build.log -TotalCount 20
+            $tail = Get-Content build.log -Tail 40
+            (@("### 打包失败：build-app.mjs 输出", "", '```text') + $head + @("", "……（中间省略）……", "") + $tail + @('```', "")) |
+              Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            $escape = { param($l) $l.Replace("%", "%25").Replace("`r", "%0D") }
+            Write-Host ("::error title=打包失败-开头20行::" + (($head | ForEach-Object { & $escape $_ }) -join "%0A"))
+            Write-Host ("::error title=打包失败-结尾40行::" + (($tail | ForEach-Object { & $escape $_ }) -join "%0A"))
             exit 1
           }
           "打包完成 ✅" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
