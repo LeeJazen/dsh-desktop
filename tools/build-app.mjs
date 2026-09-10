@@ -12,6 +12,7 @@
  * 用法：node tools/build-app.mjs
  */
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -130,6 +131,19 @@ async function main() {
   const exe = join(out, `${appName}.exe`);
 
   step("检查 Electron 运行时");
+  if (!existsSync(electronDist)) {
+    // electron 44 没有 postinstall，npm install 之后 dist 本来就是空的，
+    // 这里兜底跑一次它自带的安装脚本，避免「clone 下来就打包失败」。
+    console.log("  node_modules/electron/dist 缺失，调用 tools/ensure-electron.mjs 补下载…");
+    const ensured = spawnSync(process.execPath, [join(ROOT, "tools", "ensure-electron.mjs")], {
+      cwd: ROOT,
+      stdio: "inherit",
+      env: process.env,
+    });
+    if (ensured.error !== undefined) {
+      throw new Error(`运行 Electron 安装脚本失败：${ensured.error.message}`);
+    }
+  }
   if (!existsSync(electronDist)) {
     throw new Error(`找不到 Electron 运行时目录：${electronDist}\n  node_modules/electron 内容：${peek(join(ROOT, "node_modules", "electron"))}\n  请先执行 npm install`);
   }

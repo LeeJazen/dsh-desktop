@@ -7,6 +7,7 @@
   "main": "electron/main.js",
   "type": "commonjs",
   "scripts": {
+    "postinstall": "node tools/ensure-electron.mjs",
     "start": "electron .",
     "icon": "node tools/make-icon.mjs",
     "dist": "node tools/build-app.mjs",
