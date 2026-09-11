@@ -1,7 +1,9 @@
 # 发布说明
 
 这份文档面向**维护者**：怎么把 DSH Desktop 发出去、版本怎么改、CI 是怎么工作的。
-使用者只需要看 [README](../README.md)。
+使用者只需要看 [README.zh-CN.md](../README.zh-CN.md)（英文版：[README.md](../README.md)）。
+
+> 这份文档目前只有中文，且**没有从 README 链接过来**——需要时直接看 `docs/` 目录里的这个文件。
 
 ## 为什么仓库里没有 exe
 

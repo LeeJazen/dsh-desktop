@@ -93,6 +93,18 @@ jobs:
           files: DSH-Desktop-win32-x64.zip
           generate_release_notes: true
           body: |
+            Download `DSH-Desktop-win32-x64.zip`, extract it, and double-click `DSH Desktop.exe`.
+
+            Prerequisite: Node.js and DeepSeek Harness must already be installed:
+
+            ```powershell
+            npm i -g @deepseek-ai/dsh
+            ```
+
+            See the [English README](https://github.com/LeeJazen/dsh-desktop#readme) · [中文说明](https://github.com/LeeJazen/dsh-desktop/blob/main/README.zh-CN.md)
+
+            ---
+
             下载 `DSH-Desktop-win32-x64.zip`，解压后双击 `DSH Desktop.exe` 即可。
 
             前提：本机需要先装好 Node.js 与 DeepSeek Harness：
